@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="kk"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Реакция уақытының тесті</title>
+<style>
+:root{--bg:#f7f8f6;--fg:#14211f;--mut:#5b6b68;--line:#c9d1ce;--acc:#0f766e;--pad:#e6ebe9;--on:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1514;--fg:#e8efed;--mut:#93a39f;--line:#2b3836;--acc:#2dd4bf;--pad:#1a2321;--on:#06201c}}
+:root[data-theme="dark"]{--bg:#0f1514;--fg:#e8efed;--mut:#93a39f;--line:#2b3836;--acc:#2dd4bf;--pad:#1a2321;--on:#06201c}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:520px;margin:0 auto;padding:16px}
+h1{font-size:1.4rem;line-height:1.2;margin:.3rem 0 .2rem}
+.mut{color:var(--mut);font-size:.9rem}
+.note{border-left:3px solid var(--acc);padding:2px 12px;margin:16px 0}
+.note p{margin:4px 0}
+label{display:block;font-weight:600;margin-top:16px}
+input{width:100%;box-sizing:border-box;margin-top:6px;padding:11px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font:inherit}
+button{width:100%;padding:14px;margin-top:10px;border:0;border-radius:6px;background:var(--acc);color:var(--on);font:inherit;font-weight:600}
+button.s{background:transparent;color:var(--fg);border:1px solid var(--line)}
+#pad{min-height:58vh;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;text-align:center;touch-action:none;user-select:none;-webkit-user-select:none;background:var(--pad);padding:16px;font-size:1.15rem}
+#pad.dark{background:#000;color:#9a9a9a}
+#dot{width:140px;height:140px;border-radius:50%;background:#000;display:none}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;margin:12px 0}
+td,th{padding:8px 4px;text-align:right;border-bottom:1px solid var(--line)}
+td:first-child,th:first-child{text-align:left}
+textarea{width:100%;box-sizing:border-box;min-height:200px;white-space:pre;overflow:auto;margin-top:6px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;font:12px ui-monospace,monospace}
+.hide{display:none}
+#xw{max-height:50vh;overflow:auto;margin-top:6px;border:1px solid var(--line);border-radius:6px;background:#fff;color:#000;-webkit-user-select:text;user-select:text}
+#xt{margin:0;width:auto;font-size:.8rem}
+#xt td{padding:3px 8px;text-align:left;white-space:nowrap;color:#000;background:#fff;border:0;height:1.3em}
+</style></head>
+<body><main>
+<section id="home">
+<h1>Реакция уақытының тесті</h1>
+<div class="mut">Дыбыс жиілігі және жарық қарқындылығы</div>
+<div class="note">
+<p><b>Тест алдында:</b></p>
+<p>Құлаққап тағыңыз және дыбыс деңгейін бекітіп қойыңыз.</p>
+<p>Экран жарықтылығын бекітіңіз, авто-жарықтылықты өшіріңіз.</p>
+<p>«Мазаламаңыз» режимін қосыңыз.</p>
+</div>
+<label for="pid">Қатысушы нөмірі</label>
+<input id="pid" placeholder="P01" autocomplete="off">
+<div id="msg" class="mut"></div>
+<button id="bs">Дыбыс тесті: 4 жиілік, әрқайсысы 15 әрекет</button>
+<button id="bl">Жарық тесті: 3 деңгей, әрқайсысы 15 әрекет</button>
+<p class="mut">Сигнал шыққанда экранды мүмкіндігінше тез басыңыз. Сигналға дейін басып қойсаңыз, әрекет қайталанады. Алғашқы 2 әрекет жаттығу, ол есепке кірмейді.</p>
+</section>
+<section id="test" class="hide">
+<div class="mut" id="prog"></div>
+<div id="pad"><div id="dot"></div><div id="pt"></div></div>
+</section>
+<section id="res" class="hide">
+<h1>Нәтиже</h1>
+<table id="tb"></table>
+<div class="mut" id="cm"></div>
+<div class="mut" id="sm"></div>
+<label>Excel-ге қою: алдымен нәтиже, одан кейін барлық деректер</label>
+<div id="xw"><table id="xt"></table></div>
+<button id="bc">Көшіру</button>
+<button class="s" id="br">Google Таблицаға қайта жіберу</button>
+<button id="bx"></button>
+<button class="s" id="bn">Жаңа қатысушы</button>
+<button class="s" id="bd">Барлық деректерді өшіру</button>
+</section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const T={
+ sound:{conds:[100,500,1000,4000],lab:c=>c+' Гц',key:c=>c},
+ light:{conds:[0.02,0.2,1],lab:c=>({0.02:'Төмен (2 %)',0.2:'Қалыпты (20 %)',1:'Жоғары (100 %)'})[c],key:c=>({0.02:'low',0.2:'mid',1:'high'})[c]}
+};
+const N=15,PR=2,MAXRT=1500,BASE=.15;
+/* Әр жиіліктің 1000 Гц-ке қатысты қажет SPL түзетуі, дБ. Шамамен, ~60 фон (ISO 226). Өз кестеңізбен және дБ-метрмен нақтылаңыз. */
+const DB={100:9,500:-1,1000:0,4000:-5};
+let st=null,ctx=null,all=[];
+try{all=JSON.parse(localStorage.getItem('rtdata')||'[]')}catch(e){}
+const save=()=>{try{localStorage.setItem('rtdata',JSON.stringify(all))}catch(e){}};
+const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const show=id=>['home','test','res'].forEach(x=>$(x).classList.toggle('hide',x!==id));
+const say=t=>{$('pt').textContent=t};
+let cur=[];
+const rows=()=>{
+ const r=cur.slice();if(cur.length)r.push([]);
+ r.push(['participant','test','condition','trial','rt_ms','flag']);
+ all.forEach(x=>r.push([x.pid,x.test,x.cond,x.trial,x.rt,x.flag||'ok']));
+ return r;
+};
+const tsv=()=>rows().map(r=>r.join('\t')).join('\n');
+const draw=()=>{const R=rows(),w=Math.max(...R.map(r=>r.length));
+ $('xt').innerHTML=R.map(r=>'<tr>'+Array.from({length:w},(_,i)=>'<td>'+(r[i]===undefined?'':r[i])+'</td>').join('')+'</tr>').join('')};
+
+function start(type){
+ const pid=$('pid').value.trim().replace(/[,\t\n<>&]/g,' ');
+ if(!pid){$('msg').textContent='Алдымен қатысушы нөмірін жазыңыз.';return}
+ if(type==='sound'){try{ctx=ctx||new(window.AudioContext||window.webkitAudioContext)();ctx.resume()}catch(e){}}
+ const t=T[type],plan=[];
+ shuf(t.conds).forEach((c,b)=>{if(b===0)for(let i=0;i<PR;i++)plan.push({c,i,p:1});for(let i=1;i<=N;i++)plan.push({c,i,p:0})});
+ st={type,t,pid,plan,k:0,phase:'pause',data:[],fs:0};
+ $('pad').className=type==='light'?'dark':'';
+ $('dot').style.display=type==='light'?'block':'none';
+ show('test');next();
+}
+function next(){
+ if(st.k>=st.plan.length)return finish();
+ const tr=st.plan[st.k],prev=st.plan[st.k-1];
+ $('prog').textContent=st.t.lab(tr.c)+', '+(tr.p?'жаттығу':'әрекет '+tr.i+'/'+N);
+ if(!prev||prev.c!==tr.c){st.phase='idle';say('Келесі: '+st.t.lab(tr.c)+'. Дайын болғанда экранды басыңыз.')}
+ else begin();
+}
+function begin(){st.phase='wait';say('Сигналды күтіңіз...');st.timer=setTimeout(go,1000+Math.random()*3000)}
+function go(){
+ const c=st.plan[st.k].c;st.phase='go';
+ if(st.type==='sound'){
+  const t=ctx.currentTime,o=ctx.createOscillator(),g=ctx.createGain();
+  o.frequency.value=c;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(BASE*Math.pow(10,DB[c]/20),t+.01);
+  o.connect(g);g.connect(ctx.destination);o.start(t);
+  st.osc=o;st.g=g;st.t0=performance.now();
+ }else{
+  const v=Math.round(255*Math.pow(c,1/2.2));
+  $('dot').style.background='rgb('+v+','+v+','+v+')';
+  requestAnimationFrame(()=>{st.t0=performance.now()});
+ }
+ st.to=setTimeout(()=>{if(st.phase==='go'){off();st.phase='pause';say('Сигнал өтіп кетті. Қайталаймыз.');setTimeout(begin,1200)}},MAXRT);
+}
+function off(){
+ if(st.osc){
+  const o=st.osc,g=st.g,t=ctx.currentTime;st.osc=null;
+  try{g.gain.cancelScheduledValues(t);g.gain.setValueAtTime(g.gain.value,t);g.gain.linearRampToValueAtTime(0,t+.01);o.stop(t+.015)}catch(e){}
+ }
+ $('dot').style.background='#000';
+}
+
+$('pad').addEventListener('pointerdown',e=>{
+ e.preventDefault();
+ if(!st)return;
+ const pn=performance.now(),now=Math.abs(e.timeStamp-pn)<60000?e.timeStamp:pn;
+ if(st.phase==='idle'){begin();return}
+ if(st.phase==='wait'){
+  clearTimeout(st.timer);st.fs++;st.phase='pause';
+  say('Тым ерте басылды. Қайталаймыз.');setTimeout(begin,1200);return;
+ }
+ if(st.phase==='go'){
+  clearTimeout(st.to);
+  const rt=Math.round(now-st.t0),tr=st.plan[st.k];
+  off();st.phase='pause';
+  if(!tr.p)st.data.push({pid:st.pid,test:st.type,cond:st.t.key(tr.c),trial:tr.i,rt,flag:'ok'});
+  say(rt+' мс');st.k++;setTimeout(next,800);
+ }
+});
+
+const med=a=>{a=a.slice().sort((x,y)=>x-y);const n=a.length;return n?(n%2?a[(n-1)/2]:(a[n/2-1]+a[n/2])/2):0};
+/* Выброс: пробада медиана ± 3 MAD (масштабталған, 1.4826) бір қатысушының бір жағдайы ішінде */
+function mark(d){
+ const g={};d.forEach(r=>(g[r.cond]=g[r.cond]||[]).push(r));
+ Object.values(g).forEach(rs=>{
+  const m=med(rs.map(r=>r.rt)),mad=1.4826*med(rs.map(r=>Math.abs(r.rt-m)));
+  if(mad>0)rs.forEach(r=>{if(Math.abs(r.rt-m)>3*mad)r.flag='out'});
+ });
+}
+function finish(){
+ st.phase='done';mark(st.data);all=all.concat(st.data);save();
+ const g={};st.data.filter(r=>r.flag==='ok').forEach(r=>(g[r.cond]=g[r.cond]||[]).push(r.rt));
+ const bad=st.data.filter(r=>r.flag!=='ok').length;
+ let sum=[['Қатысушы',st.pid,'Тест',st.type],['Жағдай','n','Медиана','Орташа','SD']];const stats={};
+ let h='<tr><th>Жағдай</th><th>n</th><th>Медиана</th><th>Орташа</th><th>SD</th></tr>';
+ st.t.conds.slice().sort((a,b)=>a-b).forEach(c=>{
+  const v=(g[st.t.key(c)]||[]).sort((a,b)=>a-b),n=v.length,m=v.reduce((a,b)=>a+b,0)/(n||1);
+  const sd=n>1?Math.sqrt(v.reduce((a,b)=>a+(b-m)**2,0)/(n-1)):0;
+  const md=n?(n%2?v[(n-1)/2]:(v[n/2-1]+v[n/2])/2):0;
+  h+='<tr><td>'+st.t.lab(c)+'</td><td>'+n+'</td><td>'+md.toFixed(0)+'</td><td>'+m.toFixed(0)+'</td><td>'+sd.toFixed(0)+'</td></tr>';
+  sum.push([st.t.lab(c),n,md.toFixed(0),m.toFixed(0),sd.toFixed(0)]);
+  stats[st.t.key(c)]={n,md:Math.round(md),m:Math.round(m),sd:Math.round(sd)};
+ });
+ $('tb').innerHTML=h;cur=sum;draw();pack={pid:st.pid,test:st.type,stats,rows:st.data.map(r=>[r.pid,r.test,r.cond,r.trial,r.rt,r.flag])};send();
+ $('cm').textContent='Мәндер мс-пен. Ерте басу: '+st.fs+'. Сүзілген (медиана ± 3 MAD, әр қатысушы мен жағдай бойынша): '+bad+'. Деректер осы телефонда сақталады.';
+ show('res');$('bx').textContent=st.type==='light'?'Дыбыс тестіне өту':'Жарық тестіне өту';
+}
+
+$('bx').onclick=()=>start(st.type==='light'?'sound':'light');
+const HOOK='https://script.google.com/macros/s/AKfycbyPtKT7OfURcwDLOPp0G7LZrlj6sskp76m5P2z-OJSsv-1ve2UaOpL4thQapg9mgH9W1w/exec';
+let pack=null;
+function send(){
+ if(!pack)return;
+ $('sm').textContent='Google Таблицаға жіберілуде...';
+ fetch(HOOK,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(pack)})
+  .then(()=>{$('sm').textContent='Google Таблицаға жіберілді. Кестеден тексеріңіз.'},
+        ()=>{$('sm').textContent='Жіберілмеді. Интернетті тексеріңіз немесе «Көшіру» қолданыңыз.'});
+}
+$('br').onclick=send;
+$('bs').onclick=()=>start('sound');
+$('bl').onclick=()=>start('light');
+$('bn').onclick=()=>{$('pid').value='';$('msg').textContent='';show('home')};
+$('bc').onclick=()=>{
+ const sel=getSelection(),rg=document.createRange();
+ rg.selectNodeContents($('xt'));sel.removeAllRanges();sel.addRange(rg);
+ let ok=false;try{ok=document.execCommand('copy')}catch(e){}
+ if(!ok&&navigator.clipboard){navigator.clipboard.writeText(tsv()).then(()=>{$('cm').textContent='Көшірілді. Excel-де A1 ұяшығына қойыңыз.'},()=>{$('cm').textContent='Кестені басып ұстап, «Көшіру» таңдаңыз.'});return}
+ $('cm').textContent=ok?'Көшірілді. Excel-де A1 ұяшығына қойыңыз.':'Кестені басып ұстап, «Көшіру» таңдаңыз.';
+};
+let armed=0;
+$('bd').onclick=()=>{
+ if(!armed){armed=1;$('bd').textContent='Сенімдісіз бе? Қайта басыңыз';setTimeout(()=>{armed=0;$('bd').textContent='Барлық деректерді өшіру'},4000);return}
+ all=[];save();cur=[];draw();armed=0;$('bd').textContent='Барлық деректерді өшіру';
+};
+</script></body></html>
